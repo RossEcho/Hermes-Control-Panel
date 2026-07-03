@@ -1,0 +1,422 @@
+Hermes Web UI Setup / Build Spec
+
+Purpose
+Build a Go-based local web control panel for Hermes that gives a visual chat and operator surface with the same practical capabilities as the Hermes CLI, while staying safe to wire to the real Hermes environment later.
+
+This document is for the external implementation model. The goal is to return a mostly self-contained project scaffold/app where the remaining work on my side is only:
+1. path setup
+2. environment wiring
+3. Hermes command/API endpoint wiring
+4. small local adjustments
+
+Core product idea
+A local-first web app that feels like “Hermes CLI in a browser”, but more visual:
+- live chat
+- visible tool activity
+- buttons for common actions
+- model switcher
+- skills browser
+- local model picker
+- session history
+- process/job/status panels
+- eventually a web CLI feel with rich controls
+
+Non-goal for this phase
+Do NOT try to reimplement Hermes itself.
+Prefer a shell/control-panel architecture that can compose with real Hermes surfaces and Hermes runtime commands.
+The app should be a control layer and chat surface around Hermes, not a replacement for Hermes internals.
+
+Primary requirements
+1. Go-based app
+- Backend must be Go.
+- Prefer standard, maintainable stack choices.
+- Good options:
+  - net/http or chi for routing
+  - html/template or templ for server-rendered UI
+  - HTMX and/or minimal JS for progressive enhancement
+  - WebSocket or SSE for live streaming
+- Avoid requiring a heavy Node frontend build unless clearly justified.
+- If a small JS layer is used, keep it simple and optional.
+
+2. Live chat
+The web chat must be designed to support:
+- streaming assistant output
+- visible tool-call progress/events
+- multi-turn sessions
+- session resume/history
+- interruption/stop ability
+- slash-command style entry support eventually
+- rendering code blocks, tool outputs, status messages, and final responses cleanly
+
+3. Capability parity target
+The app should be designed so the web chat can expose the same categories of capability available in the CLI session:
+- chat with the main model
+- tool use
+- skills loading and visibility
+- session continuity
+- model switching
+- profile awareness if feasible
+- cron/jobs visibility if feasible
+- process/log/status visibility if feasible
+
+Important: parity target means the UI should be able to front the same Hermes system, not that all Hermes internals must be rewritten in Go.
+
+4. Skills panel
+Need a dedicated section showing:
+- installed skills list
+- short explanation/description for each skill
+- search/filter
+- ability to inspect a skill’s content/summary
+- ideally indicate category/tags/source if available
+- ideally load a skill into the next chat turn or active session
+
+5. Fast model switching
+Need clear UI for:
+- current main model
+- provider
+- quick model switch
+- list of available local models
+- separation between:
+  - configured main/default model
+  - currently selected chat model
+  - local models available for selection
+- support future expansion for auxiliary/delegation models if useful
+
+6. All CLI-relevant capabilities available through the web surface
+Design the UI and backend so that anything exposed through Hermes CLI workflows can be surfaced later in web form.
+Examples:
+- start chat
+- resume session
+- inspect status
+- view tools
+- view skills
+- launch commands/actions through safe backend adapters
+- eventually expose common slash commands as buttons and menus
+
+Architecture direction
+Strong preference: composition over replacement.
+Build a Go control panel shell around Hermes.
+
+Recommended architecture
+A. Go backend
+Responsibilities:
+- serve UI
+- manage web sessions
+- proxy streaming chat to Hermes adapter
+- expose REST and/or WebSocket endpoints for frontend
+- read config and environment
+- provide structured endpoints for status, skills, models, sessions
+- own secrets server-side only
+
+B. Hermes adapter layer
+Create a clean adapter interface so Hermes can be wired later without rewriting the UI.
+The external model should not hardcode one integration path.
+It should define an interface like:
+- SendChatMessage
+- StreamChat
+- ListSkills
+- GetSkill
+- ListModels
+- SwitchModel
+- ListSessions
+- ResumeSession
+- GetStatus
+- ListJobs
+- ListProcesses
+- RunAction
+
+Adapter implementations can be stubbed/mocked first.
+Later I can wire them to the real Hermes via one or more of:
+- Hermes CLI commands
+- Hermes API server
+- local files/state db/config
+- gateway/runtime logs
+
+C. UI shell
+Recommended main navigation:
+- Chat
+- Skills
+- Models
+- Sessions
+- Status
+- Jobs / Processes
+- Config
+- Logs
+
+D. Streaming transport
+Use either:
+- WebSocket for bidirectional chat + live events
+or
+- SSE for output stream plus normal POST actions
+Either is acceptable if clean and reliable.
+
+Backend integration expectations
+The implementation should be ready for these real-world Hermes integration points later:
+- Hermes executable path configurable
+- Hermes home path configurable
+- config.yaml path configurable
+- .env path configurable
+- optional API server base URL configurable
+- optional API auth token configurable
+- optional profiles support
+- optional working directory overrides
+
+Use configuration fields/env vars rather than hardcoded machine paths.
+
+Required configuration knobs
+At minimum support these app config values:
+- HERMES_EXECUTABLE_PATH
+- HERMES_HOME
+- HERMES_CONFIG_PATH
+- HERMES_ENV_PATH
+- HERMES_API_BASE_URL
+- HERMES_API_TOKEN
+- APP_HOST
+- APP_PORT
+- APP_SESSION_SECRET
+- APP_DEBUG
+
+Optional but useful:
+- DEFAULT_PROFILE
+- DEFAULT_CHAT_MODEL
+- ENABLE_DIRECT_CLI_MODE
+- ENABLE_API_MODE
+- ENABLE_MOCK_MODE
+- LOG_LEVEL
+
+Important UI features
+1. Chat page
+Must include:
+- conversation list/sidebar
+- active conversation pane
+- message composer
+- send button
+- stop button
+- clear/new session button
+- model badge/switcher
+- skill load shortcut area
+- event stream area for tool actions/status
+- timestamps
+- copy buttons for code/output
+
+2. Skills page
+Must include:
+- searchable list
+- description/explanation panel
+- category/tags/source display if known
+- load/use action placeholder
+- ability to inspect raw skill content or detailed view
+
+3. Models page
+Must include:
+- current active model
+- current provider
+- quick switch controls
+- available local models list
+- configured/default model display
+- status indicators for availability
+
+4. Status page
+Must include structured panels for later wiring to real Hermes state:
+- Hermes process status
+- API status
+- gateway status
+- current profile
+- loaded toolsets if available
+- sessions count if available
+- jobs/processes summary if available
+
+5. Sessions page
+Must include:
+- recent sessions list
+- session title/id
+- last updated time
+- preview text
+- open/resume action
+
+6. Logs/Jobs/Processes page
+At least scaffolded for later wiring:
+- job list
+- running process list
+- log tail area
+- refresh button
+- action buttons placeholders
+
+UX goals
+- local desktop-operator feel
+- clean, dense, practical interface
+- keyboard-friendly
+- works well on a normal desktop browser first
+- not mobile-first
+- visual but not bloated
+- a lot of “operator utility” energy, not marketing-site energy
+
+Security requirements
+- Do not expose Hermes API keys or secrets to browser JS.
+- Keep secret-bearing actions server-side.
+- Sanitize command/action boundaries.
+- If a direct CLI mode is scaffolded, isolate it behind backend adapters only.
+- Make dangerous actions explicit and easy to disable.
+- Prefer read-only scaffolds for status/config inspection where real write behavior is not yet wired.
+
+Implementation constraints
+- Deliver a project that builds cleanly.
+- Avoid hidden external dependencies unless documented.
+- Keep mock/demo mode available so the app can run before real Hermes wiring.
+- Use interfaces and service boundaries so I can swap fake adapter with real adapter later.
+- Avoid coupling the UI to one exact Hermes runtime assumption.
+
+Suggested project layout
+This is only a recommendation, not a hard rule:
+
+/Hermes-Control-Panel
+  /cmd/server
+    main.go
+  /internal/config
+  /internal/http
+  /internal/chat
+  /internal/hermes
+    adapter.go
+    mock_adapter.go
+    cli_adapter.go
+    api_adapter.go
+  /internal/models
+  /internal/skills
+  /internal/sessions
+  /internal/status
+  /internal/jobs
+  /internal/processes
+  /internal/templates
+  /web/static
+  /web/templates
+  /docs
+  README.md
+  go.mod
+
+Recommended backend endpoints
+Example shape only; can vary if equivalent:
+- GET /health
+- GET /api/status
+- GET /api/models
+- POST /api/models/select
+- GET /api/skills
+- GET /api/skills/{id}
+- GET /api/sessions
+- GET /api/sessions/{id}
+- POST /api/sessions/new
+- POST /api/chat/send
+- GET /api/chat/stream/{sessionId}
+- POST /api/chat/stop
+- GET /api/jobs
+- GET /api/processes
+- GET /api/logs
+
+Recommended event types for streaming chat
+Design an event envelope that can support at least:
+- message_start
+- message_delta
+- message_end
+- tool_call_start
+- tool_call_update
+- tool_call_end
+- status
+- error
+- session_update
+
+Mock mode requirements
+Very important.
+The external model should make the app runnable without real Hermes by implementing mock/sample data for:
+- chat streaming
+- skills list
+- model list
+- sessions list
+- status panel
+- jobs/processes summary
+
+This lets me inspect the full UI before wiring.
+
+Build requirements
+The returned project should include:
+1. working go.mod
+2. clear README
+3. local run instructions
+4. mock mode run instructions
+5. config/env example file
+6. no missing template/static references
+7. all routes wired
+8. a buildable binary target
+9. minimal but coherent styling
+10. sample data so the UI is demonstrable immediately
+
+Prefer the following commands to succeed:
+- gofmt -w .
+- go test ./...
+- go build ./...
+
+If tests are light, that is okay, but at least basic handler/config/adapter tests should exist.
+
+README / handoff requirements
+The external implementation should return with a README that explains:
+- what is implemented now
+- what is mocked
+- where real Hermes wiring should be connected
+- all required env vars
+- how to run in mock mode
+- how to run in future CLI mode
+- how to run in future API mode
+- known limitations
+
+Wiring guidance for later integration
+The code should make the remaining wiring on my side obvious.
+At minimum there should be one clearly documented place for:
+- Hermes CLI invocation wiring
+- Hermes API wiring
+- skills source wiring
+- model source wiring
+- session source wiring
+- status/jobs/logs source wiring
+
+Acceptance criteria for the outsourced build
+I should receive back a repo/app where:
+- it builds in Go without me inventing architecture
+- I can run it locally in mock mode immediately
+- I can see a full chat UI
+- I can inspect skills/models/sessions/status pages
+- adapter boundaries are explicit
+- real Hermes integration points are obvious and localized
+- remaining work is mostly path setup and connection/wiring
+
+Nice-to-have features
+- command palette
+- slash-command helper menu
+- profile switcher
+- dark mode default
+- resizable panes
+- tool event timeline in chat
+- toast notifications
+- log tail streaming
+- embedded “raw output” drawer
+
+Important anti-patterns to avoid
+- Do not build only a pretty frontend mock with no backend structure.
+- Do not tightly couple the app to one machine path.
+- Do not require a large JS SPA stack unless truly necessary.
+- Do not hardcode secrets in frontend code.
+- Do not reimplement Hermes internals when an adapter boundary is better.
+- Do not leave the architecture vague.
+
+Short build brief for the external model
+Build a Go-based local web control panel for Hermes with a real backend, server-rendered or light-JS UI, streaming chat scaffolding, searchable skills page, fast model switcher, sessions/status panels, and a mockable Hermes adapter layer. Return a buildable project with mock mode fully usable and all real Hermes wiring points isolated and documented.
+
+What I will wire later
+I expect to handle later:
+- exact Hermes executable path
+- exact config/home/env path mapping
+- live local model discovery source
+- final CLI/API command mapping
+- profile-specific runtime quirks
+- local auth/security policy adjustments
+
+Deliverable expectation
+Return code, not just a plan.
+The app should already run locally in mock mode and feel like the real control panel skeleton.
