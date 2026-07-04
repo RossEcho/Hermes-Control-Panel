@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -18,36 +19,68 @@ import (
 type Handler struct {
 	adapter   hermes.Adapter
 	cfg       *config.Config
-	templates *template.Template
+	templates map[string]*template.Template // one isolated set per page
 }
 
-// New creates a Handler and parses all HTML templates.
+var funcMap = template.FuncMap{
+	"join": func(sep string, items []string) string {
+		out := ""
+		for i, s := range items {
+			if i > 0 {
+				out += sep
+			}
+			out += s
+		}
+		return out
+	},
+	"maskSecret": func(s string) string {
+		if s == "" {
+			return "(not set)"
+		}
+		if len(s) <= 4 {
+			return "****"
+		}
+		return s[:4] + strings.Repeat("*", len(s)-4)
+	},
+	"fmtM": func(n int) string {
+		switch {
+		case n >= 1_000_000:
+			return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+		case n >= 1_000:
+			return fmt.Sprintf("%.1fk", float64(n)/1_000)
+		default:
+			return fmt.Sprintf("%d", n)
+		}
+	},
+	"fmtCost": func(f float64) string {
+		if f == 0 {
+			return "free"
+		}
+		return fmt.Sprintf("$%.2f", f)
+	},
+}
+
+// New creates a Handler and parses each page template into its own isolated
+// template set (paired with layout.html). This prevents the shared-set
+// bug where all {{define "content"}} blocks collapse to the last-parsed file.
 func New(adapter hermes.Adapter, cfg *config.Config) (*Handler, error) {
-	tmpl, err := template.New("").Funcs(template.FuncMap{
-		"join": func(sep string, items []string) string {
-			result := ""
-			for i, s := range items {
-				if i > 0 {
-					result += sep
-				}
-				result += s
-			}
-			return result
-		},
-		"maskSecret": func(s string) string {
-			if s == "" {
-				return "(not set)"
-			}
-			if len(s) <= 4 {
-				return "****"
-			}
-			return s[:4] + strings.Repeat("*", len(s)-4)
-		},
-	}).ParseGlob("web/templates/*.html")
-	if err != nil {
-		return nil, err
+	pages := []string{
+		"chat.html", "config.html", "models.html",
+		"sessions.html", "skills.html", "status.html",
+		"jobs.html",
 	}
-	return &Handler{adapter: adapter, cfg: cfg, templates: tmpl}, nil
+	tmpls := make(map[string]*template.Template, len(pages))
+	for _, page := range pages {
+		t, err := template.New(page).Funcs(funcMap).ParseFiles(
+			"web/templates/layout.html",
+			"web/templates/"+page,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("parse %s: %w", page, err)
+		}
+		tmpls[page] = t
+	}
+	return &Handler{adapter: adapter, cfg: cfg, templates: tmpls}, nil
 }
 
 // Router builds and returns the complete chi router.
@@ -58,7 +91,7 @@ func (h *Handler) Router() http.Handler {
 
 	// Pages
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/chat", http.StatusFound)
+		http.Redirect(w, r, "/status", http.StatusFound)
 	})
 	r.Get("/chat", h.ChatPage)
 	r.Get("/chat/{sessionID}", h.ChatPage)
@@ -127,8 +160,14 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 func (h *Handler) renderTemplate(w http.ResponseWriter, name string, data interface{}) {
+	tmpl, ok := h.templates[name]
+	if !ok {
+		log.Printf("renderTemplate: unknown template %q", name)
+		http.Error(w, "template not found", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.templates.ExecuteTemplate(w, name, data); err != nil {
+	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
 		log.Printf("template %q: %v", name, err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 	}

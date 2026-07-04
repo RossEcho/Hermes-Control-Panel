@@ -40,15 +40,24 @@ type Skill struct {
 	Content     string
 }
 
+// ModelMonthlyUsage holds 30-day aggregate stats for a single model.
+type ModelMonthlyUsage struct {
+	Calls        int
+	InputTokens  int
+	OutputTokens int
+	CostUSD      float64
+}
+
 // Model represents an LLM model available to Hermes.
 type Model struct {
-	ID        string
-	Name      string
-	Provider  string
-	IsDefault bool
-	IsActive  bool
-	IsLocal   bool
-	Available bool
+	ID           string
+	Name         string
+	Provider     string
+	IsDefault    bool
+	IsActive     bool
+	IsLocal      bool
+	Available    bool
+	MonthlyUsage *ModelMonthlyUsage
 }
 
 // Session is a Hermes chat session.
@@ -124,7 +133,7 @@ type Adapter interface {
 	// Sessions
 	ListSessions() ([]Session, error)
 	GetSession(id string) (*Session, error)
-	NewSession() (*Session, error)
+	NewSession(title string) (*Session, error)
 	DeleteSession(id string) error
 
 	// Usage

@@ -334,6 +334,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "claude-3-5-sonnet-20241022",
 			IsLocal:   false,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        1842,
+				InputTokens:  4_210_500,
+				OutputTokens: 1_388_200,
+				CostUSD:      31.47,
+			},
 		},
 		{
 			ID:        "claude-3-opus-20240229",
@@ -343,6 +349,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "claude-3-opus-20240229",
 			IsLocal:   false,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        214,
+				InputTokens:  892_000,
+				OutputTokens: 310_400,
+				CostUSD:      48.21,
+			},
 		},
 		{
 			ID:        "claude-3-haiku-20240307",
@@ -352,6 +364,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "claude-3-haiku-20240307",
 			IsLocal:   false,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        5_103,
+				InputTokens:  9_841_000,
+				OutputTokens: 2_914_000,
+				CostUSD:      3.12,
+			},
 		},
 		{
 			ID:        "gpt-4o",
@@ -361,6 +379,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "gpt-4o",
 			IsLocal:   false,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        387,
+				InputTokens:  1_204_000,
+				OutputTokens: 498_700,
+				CostUSD:      22.84,
+			},
 		},
 		{
 			ID:        "gpt-4o-mini",
@@ -370,6 +394,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "gpt-4o-mini",
 			IsLocal:   false,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        2_910,
+				InputTokens:  6_330_000,
+				OutputTokens: 1_870_000,
+				CostUSD:      1.94,
+			},
 		},
 		{
 			ID:        "ollama/llama3.1:8b",
@@ -379,6 +409,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "ollama/llama3.1:8b",
 			IsLocal:   true,
 			Available: true,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        720,
+				InputTokens:  1_540_000,
+				OutputTokens: 620_000,
+				CostUSD:      0,
+			},
 		},
 		{
 			ID:        "ollama/codestral:22b",
@@ -388,6 +424,12 @@ func (m *MockAdapter) ListModels() ([]Model, error) {
 			IsActive:  active == "ollama/codestral:22b",
 			IsLocal:   true,
 			Available: false,
+			MonthlyUsage: &ModelMonthlyUsage{
+				Calls:        0,
+				InputTokens:  0,
+				OutputTokens: 0,
+				CostUSD:      0,
+			},
 		},
 	}
 	return models, nil
@@ -429,13 +471,16 @@ func (m *MockAdapter) GetSession(id string) (*Session, error) {
 	return &cp, nil
 }
 
-func (m *MockAdapter) NewSession() (*Session, error) {
+func (m *MockAdapter) NewSession(title string) (*Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := fmt.Sprintf("sess-%d", time.Now().UnixNano())
+	if title == "" {
+		title = "New Session"
+	}
 	s := &Session{
 		ID:           id,
-		Title:        "New Session",
+		Title:        title,
 		LastUpdated:  time.Now().UTC().Format(time.RFC3339),
 		Preview:      "",
 		MessageCount: 0,

@@ -153,14 +153,30 @@ func (h *Handler) ChatStop(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
-// SessionNew creates a new session and redirects to its chat page.
+// SessionNew creates a new session. Accepts optional form fields:
+// name, context, model, harness, workspace.
+// Returns JSON so it can be called via fetch from JS.
 func (h *Handler) SessionNew(w http.ResponseWriter, r *http.Request) {
-	sess, err := h.adapter.NewSession()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "bad form")
+		return
+	}
+	name := r.FormValue("name")
+	model := r.FormValue("model")
+
+	if model != "" {
+		_ = h.adapter.SwitchModel(model) // best-effort
+	}
+
+	sess, err := h.adapter.NewSession(name)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	http.Redirect(w, r, "/chat/"+sess.ID, http.StatusSeeOther)
+	writeJSON(w, http.StatusOK, map[string]string{
+		"session_id": sess.ID,
+		"title":      sess.Title,
+	})
 }
 
 // SessionsList returns the JSON list of sessions.

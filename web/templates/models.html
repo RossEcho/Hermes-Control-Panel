@@ -79,5 +79,40 @@
       {{end}}
     </div>
   </div>
+
+  <!-- Monthly usage -->
+  <div class="models-section">
+    <h2 class="models-section-title">Monthly Usage <span class="section-hint">(last 30 days)</span></h2>
+    <table class="usage-table">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Provider</th>
+          <th class="usage-col-num">Calls</th>
+          <th class="usage-col-num">Tokens In</th>
+          <th class="usage-col-num">Tokens Out</th>
+          <th class="usage-col-num">Est. Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range $payload.Models}}
+        {{if .MonthlyUsage}}
+        {{if or .MonthlyUsage.Calls (not .IsLocal)}}
+        <tr class="{{if .IsActive}}usage-row-active{{end}}">
+          <td class="usage-model-name">
+            {{if .IsActive}}<span class="usage-active-dot">●</span> {{end}}{{.Name}}
+          </td>
+          <td class="usage-provider">{{.Provider}}</td>
+          <td class="usage-col-num usage-num">{{fmtM .MonthlyUsage.Calls}}</td>
+          <td class="usage-col-num usage-num">{{fmtM .MonthlyUsage.InputTokens}}</td>
+          <td class="usage-col-num usage-num">{{fmtM .MonthlyUsage.OutputTokens}}</td>
+          <td class="usage-col-num usage-cost {{if eq .MonthlyUsage.CostUSD 0.0}}usage-cost-free{{end}}">{{fmtCost .MonthlyUsage.CostUSD}}</td>
+        </tr>
+        {{end}}
+        {{end}}
+        {{end}}
+      </tbody>
+    </table>
+  </div>
 </div>
 {{end}}

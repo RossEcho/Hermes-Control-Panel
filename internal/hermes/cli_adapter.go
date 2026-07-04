@@ -125,7 +125,7 @@ func (a *CLIAdapter) GetSession(_ string) (*Session, error) {
 	return nil, ErrNotImplemented
 }
 
-func (a *CLIAdapter) NewSession() (*Session, error) {
+func (a *CLIAdapter) NewSession(_ string) (*Session, error) {
 	return nil, ErrNotImplemented
 }
 

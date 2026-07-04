@@ -140,7 +140,7 @@ func (a *APIAdapter) GetSession(_ string) (*Session, error) {
 	return nil, ErrNotImplemented
 }
 
-func (a *APIAdapter) NewSession() (*Session, error) {
+func (a *APIAdapter) NewSession(_ string) (*Session, error) {
 	return nil, ErrNotImplemented
 }
 

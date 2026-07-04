@@ -50,7 +50,10 @@
 </div>
 
 <div class="status-section">
-  <h2 class="section-title">Active Sessions</h2>
+  <div class="section-title-row">
+    <h2 class="section-title">Active Bots</h2>
+    <button class="btn-new-session" onclick="openNewSessionModal()">New Bot</button>
+  </div>
   <div class="session-blobs">
     {{range $payload.Sessions}}
     <div class="session-blob session-blob-{{if eq .Status "running"}}running{{else}}idle{{end}}"

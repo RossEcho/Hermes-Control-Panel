@@ -1,172 +1,163 @@
-# Hermes Control Panel
+# Bot Factory — Hermes Control Panel
 
-A Go-based local web control panel for the **Hermes** AI assistant system.
-It provides a dark-themed operator UI with chat, skill browsing, model switching,
-session management, system status, job monitoring, and configuration viewing.
-
-The panel is built as a **shell/control-layer** around Hermes. All Hermes
-interaction is funneled through a single `Adapter` interface with three
-implementations:
-
-| Mode | Adapter | Status |
-|------|---------|--------|
-| **Mock** (default) | `MockAdapter` | Fully implemented — no Hermes required |
-| **CLI** | `CLIAdapter` | Stub — see wiring guide below |
-| **API** | `APIAdapter` | Stub — see wiring guide below |
+A local web control panel for the Hermes AI agent CLI. Built in Go with no frontend build step — just run and open a browser.
 
 ---
 
-## What is implemented
+## Overview
 
-- Full server-rendered UI (dark operator theme, fixed sidebar, 7 pages)
-- Chat page with session sidebar, streaming message pane via SSE, tool-call
-  collapsible blocks, and Stop button
-- Skills browser with live search filter and detail panel
-- Models page with provider grouping and switch-model action
-- Sessions page with table view and Open button
-- Status dashboard with colour-coded status cards
-- Jobs page with jobs table, processes table, and log tail
-- Config page (read-only) with masked secrets and wiring hints
-- Complete `MockAdapter` with realistic sample data (6 models, 6 skills,
-  4 sessions, 3 jobs, 3 processes, 10 log lines, streaming chat simulation
-  with a tool_call event)
-- Simple `.env` file parser (no external dependency)
-- `CLIAdapter` stub with full wiring documentation
-- `APIAdapter` stub with full wiring documentation
-- Config test suite (env vars, defaults, .env loading)
-- Mock adapter test suite (all interface methods)
-- Handler test suite (health endpoint, redirects, JSON APIs)
+Bot Factory is a dark-themed operator dashboard that gives you a real-time view of every AI session running under Hermes. You can spin up new bots, watch them stream responses, browse the skill library, switch models, and monitor token spend — all without leaving the browser.
 
-## What is mocked
-
-Everything in `MockAdapter` is simulated in-process with no real Hermes
-process required:
-
-- Chat streaming: ~5–8 SSE events with 100ms delays, including one tool call
-- Skills: 6 built-in/community skills with full content
-- Models: 5 cloud models (Anthropic, OpenAI) + 2 local Ollama models
-- Sessions: 4 pre-seeded sessions; in-memory accumulation for new messages
-- Status: all green/running
-- Jobs: completed, running, and failed samples
-- Processes: hermes, hermes-gateway, ollama
-- Logs: 10 realistic log lines
+The app runs fully in **mock mode** by default (no Hermes binary required), making it usable as a standalone demo or UI prototype. Swapping in the real CLI or REST API adapter requires only an environment variable change.
 
 ---
 
-## Where real Hermes wiring connects
+## Features
 
-### CLI mode (`internal/hermes/cli_adapter.go`)
+### Bots (Main View)
+- **Active Bots grid** — session blobs showing each bot's name, status (running / idle), and message count. Click any blob to open a floating chat window.
+- **New Bot button** — opens the Bot Factory modal to configure and launch a new session.
+- **System health cards** — live indicators for Hermes process, API connection, gateway, active profile, session count, and job count.
 
-Implement each method by constructing an `exec.Cmd` with the Hermes binary.
-The file contains a detailed wiring guide as a comment block:
+### Bot Factory Modal
+Launched via the **New Bot** button. Fields:
+- **Session Name** — human-readable label for the bot.
+- **Short Context** — initial instructions or framing passed to the session.
+- **Model** — choose from cloud models (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku, GPT-4o, GPT-4o Mini) or local Ollama models.
+- **Harness** — execution profile (Default, Code, Research, Ops, Custom).
+- **Workspace Path** — local directory the bot operates in.
 
-- `HERMES_EXECUTABLE_PATH` → path to the `hermes` binary
-- `HERMES_HOME` → Hermes data directory
-- `HERMES_CONFIG_PATH` → Hermes config file
-- Expected CLI subcommands: `chat --stream`, `skills list`, `models list/use`,
-  `sessions list/new`, `status`, `jobs list`, `logs --tail N`
+On submit the session is created and immediately opens as a floating chat window.
 
-### API mode (`internal/hermes/api_adapter.go`)
+### Floating Chat Windows
+Windows Messenger-style chat panels that stack along the bottom of the screen. Each window has:
+- **Live status dot** — pulses green while the bot is streaming a response.
+- **Minimize / Close** controls.
+- **Enlarge (⛶)** — expands the window into a large centered modal with a full composer.
+- **Real-time streaming** — responses arrive token-by-token via Server-Sent Events (SSE).
+- **Stop button** — cancels an in-progress stream.
 
-Implement each method with `http.Client` calls against the Hermes REST API.
-The file contains a detailed wiring guide:
+Multiple windows can be open simultaneously; they reposition automatically when one is closed.
 
-- `HERMES_API_BASE_URL` → e.g. `http://localhost:7700`
-- `HERMES_API_TOKEN` → bearer token (optional)
-- Expected endpoints: `POST /v1/sessions/{id}/chat` (SSE),
-  `GET /v1/skills`, `GET /v1/models`, `POST /v1/models/active`, etc.
+### Skills Browser
+Browse and search the full library of Hermes skills (tools). Each skill shows its name, category, tags, source, and full markdown documentation. Filter by name or category using the search bar.
 
----
+### Models
+- **Active model card** — highlights the currently selected LLM.
+- **Cloud and local model grids** — availability status and one-click switching.
+- **Monthly Usage table** — last-30-day breakdown per model: call count, tokens in, tokens out, and estimated cost. Local models show as free.
 
-## Environment variables
+### Sidebar
+- **SPA navigation** — clicking Bots, Skills, Models, or Config swaps only the main content area; the sidebar never reloads.
+- **Running Agents panel** — lists all sessions with their live status dot and a remove (×) button to delete a session.
+- **Usage strip** — auto-refreshes every 30 seconds showing aggregate token counts (input, output, active sessions, messages today).
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HERMES_EXECUTABLE_PATH` | | Path to Hermes binary (CLI mode) |
-| `HERMES_HOME` | | Hermes data directory |
-| `HERMES_CONFIG_PATH` | | Hermes config file path |
-| `HERMES_ENV_PATH` | | Hermes .env file path |
-| `HERMES_API_BASE_URL` | | Hermes API base URL (API mode) |
-| `HERMES_API_TOKEN` | | Hermes API bearer token |
-| `APP_HOST` | `localhost` | Server bind host |
-| `APP_PORT` | `8080` | Server bind port |
-| `APP_SESSION_SECRET` | `change-me-in-production` | Session secret |
-| `APP_DEBUG` | `false` | Enable debug output |
-| `DEFAULT_PROFILE` | `default` | Default Hermes profile |
-| `DEFAULT_CHAT_MODEL` | `claude-3-5-sonnet-20241022` | Default chat model |
-| `ENABLE_MOCK_MODE` | `true` | Use MockAdapter |
-| `ENABLE_DIRECT_CLI_MODE` | `false` | Use CLIAdapter |
-| `ENABLE_API_MODE` | `false` | Use APIAdapter |
-| `LOG_LEVEL` | `info` | Log level |
-
-Copy `.env.example` to `.env` and edit as needed. The `.env` file is optional —
-all variables can also be set in the process environment.
+### Config
+Displays the active runtime configuration: mode, server address, adapter settings, and masked secrets.
 
 ---
 
-## Running in mock mode (default)
+## Architecture
+
+| Layer | Technology |
+|---|---|
+| Server | Go 1.21, `net/http`, `github.com/go-chi/chi/v5` |
+| Templates | `html/template` — one isolated set per page to prevent content-block collisions |
+| Streaming | Server-Sent Events (SSE) — no WebSocket dependency |
+| Progressive enhancement | HTMX (usage fragment polling) |
+| SPA nav | Vanilla JS fetch + `DOMParser` + `history.pushState` |
+| Floating UI | Pure CSS + vanilla JS — no React, no npm |
+
+### Adapter pattern
+
+All Hermes interaction is abstracted behind a single `Adapter` interface. Switch modes via environment variables:
+
+| Env var | Adapter | Description |
+|---|---|---|
+| `ENABLE_MOCK_MODE=true` *(default)* | `MockAdapter` | Fully self-contained; no Hermes required |
+| `ENABLE_DIRECT_CLI_MODE=true` | `CLIAdapter` | Invokes the Hermes binary via `os/exec` |
+| `ENABLE_API_MODE=true` | `APIAdapter` | Calls a running Hermes REST API server |
+
+---
+
+## Running
 
 ```bash
-# From the project root
+# Default — mock mode on port 8081
+APP_PORT=8081 go run ./cmd/server
+```
+
+Open **http://localhost:8081** in your browser.
+
+### Connect to a real Hermes CLI
+
+```bash
+ENABLE_DIRECT_CLI_MODE=true \
+ENABLE_MOCK_MODE=false \
+HERMES_EXECUTABLE_PATH=/usr/local/bin/hermes \
 go run ./cmd/server
 ```
 
-Open http://localhost:8080 in your browser.
-
-## Building
+### Connect to a Hermes REST API
 
 ```bash
-go build -o hermes-ui ./cmd/server
-./hermes-ui
-```
-
-## Running with the real Hermes CLI
-
-1. Fill in `HERMES_EXECUTABLE_PATH` in `.env`
-2. Set `ENABLE_DIRECT_CLI_MODE=true` and `ENABLE_MOCK_MODE=false`
-3. Implement `CLIAdapter` methods in `internal/hermes/cli_adapter.go`
-4. Run as normal
-
-```bash
-ENABLE_DIRECT_CLI_MODE=true ENABLE_MOCK_MODE=false go run ./cmd/server
-```
-
-## Running with the Hermes REST API
-
-1. Fill in `HERMES_API_BASE_URL` (and optionally `HERMES_API_TOKEN`) in `.env`
-2. Set `ENABLE_API_MODE=true` and `ENABLE_MOCK_MODE=false`
-3. Implement `APIAdapter` methods in `internal/hermes/api_adapter.go`
-4. Run as normal
-
-```bash
-ENABLE_API_MODE=true ENABLE_MOCK_MODE=false go run ./cmd/server
-```
-
-## Running tests
-
-```bash
-# Run all tests from project root (templates are accessible)
-go test ./...
-
-# Run specific packages
-go test ./internal/config/...
-go test ./internal/hermes/...
-go test ./internal/handlers/...
+ENABLE_API_MODE=true \
+ENABLE_MOCK_MODE=false \
+HERMES_API_BASE_URL=http://localhost:7700 \
+go run ./cmd/server
 ```
 
 ---
 
-## Known limitations
+## Environment Variables
 
-- Session state is stored in-memory only — restarting the server loses all
-  sessions created during the run (pre-seeded mock sessions are always
-  regenerated).
-- No authentication or access control. Intended for local/trusted use.
-- Template files must be present relative to the working directory where the
-  binary is invoked (`web/templates/*.html`). Run the binary from the project
-  root.
-- No mobile responsiveness; designed for desktop operator use.
-- The CLI and API adapters are stubs that return `ErrNotImplemented` until
-  wired up.
-- SSE streaming does not use WebSockets; browser support for EventSource is
-  required (all modern browsers).
+| Variable | Default | Description |
+|---|---|---|
+| `APP_PORT` | `8080` | Server bind port |
+| `APP_HOST` | `localhost` | Server bind host |
+| `ENABLE_MOCK_MODE` | `true` | Use MockAdapter (no Hermes needed) |
+| `ENABLE_DIRECT_CLI_MODE` | `false` | Use CLIAdapter |
+| `ENABLE_API_MODE` | `false` | Use APIAdapter |
+| `HERMES_EXECUTABLE_PATH` | | Path to Hermes binary (CLI mode) |
+| `HERMES_API_BASE_URL` | | Hermes API base URL (API mode) |
+| `HERMES_API_TOKEN` | | Hermes API bearer token |
+| `DEFAULT_CHAT_MODEL` | `claude-3-5-sonnet-20241022` | Default model |
+
+Copy `.env.example` to `.env` and edit as needed.
+
+---
+
+## Project Structure
+
+```
+cmd/server/          — entry point
+internal/
+  config/            — env-based configuration
+  handlers/          — HTTP handlers and router
+  hermes/
+    adapter.go       — shared types + Adapter interface
+    mock_adapter.go  — mock implementation (default)
+    cli_adapter.go   — CLI wiring stub
+    api_adapter.go   — REST API wiring stub
+web/
+  static/
+    style.css        — dark operator theme (CSS custom properties)
+    app.js           — chat SSE, floating windows, modal, SPA nav
+  templates/
+    layout.html      — sidebar shell, usage strip, nav
+    status.html      — Bots / Active Bots view
+    chat.html        — full chat page (session sidebar + message pane)
+    skills.html      — skill browser
+    models.html      — model switcher + monthly usage table
+    config.html      — configuration viewer
+```
+
+---
+
+## Known Limitations
+
+- Session state is in-memory only — restarting the server clears sessions created at runtime (pre-seeded mock sessions are always regenerated).
+- No authentication or access control. Intended for local/trusted use only.
+- Templates must be present relative to the working directory (`web/templates/`). Run from the project root.
+- The CLI and API adapters are stubs that return `ErrNotImplemented` until wired up.
+- No mobile layout; designed for desktop operator use.

@@ -4,6 +4,52 @@
    ============================================================ */
 
 // ----------------------------------------------------------------
+// SPA nav — swap only .main-content on sidebar link clicks
+// ----------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', function () {
+  var nav = document.getElementById('main-nav');
+  if (!nav) return;
+
+  function navSwap(url) {
+    fetch(url)
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var doc      = new DOMParser().parseFromString(html, 'text/html');
+        var incoming = doc.querySelector('.main-content');
+        var current  = document.querySelector('.main-content');
+        if (!incoming || !current) return;
+        current.replaceWith(incoming);
+        history.pushState(null, '', url);
+        syncNavActive(url);
+        // Re-init HTMX on swapped content (usage fragment polling etc.)
+        if (window.htmx) window.htmx.process(document.querySelector('.main-content'));
+      })
+      .catch(function (err) { console.error('navSwap failed:', err); });
+  }
+
+  function syncNavActive(url) {
+    nav.querySelectorAll('.nav-item').forEach(function (item) {
+      var a    = item.querySelector('.nav-link');
+      var href = a && a.getAttribute('href');
+      var match = !!href && (url === href || url.startsWith(href + '/'));
+      item.classList.toggle('active', match);
+    });
+  }
+
+  nav.addEventListener('click', function (e) {
+    var link = e.target.closest('.nav-link');
+    if (!link) return;
+    e.preventDefault();
+    navSwap(link.getAttribute('href'));
+  });
+
+  window.addEventListener('popstate', function () {
+    navSwap(location.pathname);
+  });
+});
+
+// ----------------------------------------------------------------
 // Chat SSE streaming
 // ----------------------------------------------------------------
 
@@ -788,4 +834,119 @@ function cwModalKeyDown(e, sessionID) {
 function cwModalScrollBottom(sessionID) {
   const msgsEl = document.getElementById(`cwmodalmsgs-${sessionID}`);
   if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+// ----------------------------------------------------------------
+// New Session Modal
+// ----------------------------------------------------------------
+
+function openNewSessionModal() {
+  if (document.getElementById('ns-modal-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ns-modal-overlay';
+  overlay.id = 'ns-modal-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeNewSessionModal(); });
+
+  overlay.innerHTML = `
+    <div class="ns-modal">
+      <div class="ns-modal-titlebar">
+        <span class="ns-modal-title">Bot Factory</span>
+        <button class="cw-btn cw-close" title="Close" onclick="closeNewSessionModal()">×</button>
+      </div>
+      <div class="ns-modal-body">
+        <div class="ns-form-row">
+          <label class="ns-label" for="ns-name">Session Name</label>
+          <input class="ns-input" id="ns-name" type="text" placeholder="e.g. Refactor auth module" autocomplete="off">
+        </div>
+        <div class="ns-form-row">
+          <label class="ns-label" for="ns-context">Short Context</label>
+          <textarea class="ns-textarea" id="ns-context" rows="3" placeholder="Brief description or initial instructions for this session…"></textarea>
+        </div>
+        <div class="ns-form-row ns-form-row-cols">
+          <div class="ns-col">
+            <label class="ns-label" for="ns-model">Model</label>
+            <select class="ns-select" id="ns-model">
+              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+              <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+              <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+              <option value="ollama/llama3.1:8b">Llama 3.1 8B (local)</option>
+            </select>
+          </div>
+          <div class="ns-col">
+            <label class="ns-label" for="ns-harness">Harness</label>
+            <select class="ns-select" id="ns-harness">
+              <option value="default">Default</option>
+              <option value="code">Code</option>
+              <option value="research">Research</option>
+              <option value="ops">Ops</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div class="ns-form-row">
+          <label class="ns-label" for="ns-workspace">Workspace Path</label>
+          <input class="ns-input" id="ns-workspace" type="text" placeholder="e.g. C:\projexts\my-project" autocomplete="off">
+        </div>
+        <div class="ns-error hidden" id="ns-error"></div>
+      </div>
+      <div class="ns-modal-footer">
+        <button class="ns-btn-cancel" onclick="closeNewSessionModal()">Cancel</button>
+        <button class="ns-btn-create" id="ns-create-btn" onclick="submitNewSession()">Create Session</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('ns-name').focus(), 50);
+
+  document.getElementById('ns-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitNewSession();
+    if (e.key === 'Escape') closeNewSessionModal();
+  });
+}
+
+function closeNewSessionModal() {
+  const overlay = document.getElementById('ns-modal-overlay');
+  if (overlay) overlay.remove();
+}
+
+async function submitNewSession() {
+  const name      = document.getElementById('ns-name').value.trim();
+  const context   = document.getElementById('ns-context').value.trim();
+  const model     = document.getElementById('ns-model').value;
+  const harness   = document.getElementById('ns-harness').value;
+  const workspace = document.getElementById('ns-workspace').value.trim();
+
+  const errEl  = document.getElementById('ns-error');
+  const createBtn = document.getElementById('ns-create-btn');
+
+  errEl.classList.add('hidden');
+  errEl.textContent = '';
+  createBtn.disabled = true;
+  createBtn.textContent = 'Creating…';
+
+  try {
+    const form = new FormData();
+    form.append('name',      name || 'New Session');
+    form.append('context',   context);
+    form.append('model',     model);
+    form.append('harness',   harness);
+    form.append('workspace', workspace);
+
+    const resp = await fetch('/api/sessions/new', { method: 'POST', body: form });
+    if (!resp.ok) throw new Error('Server error: ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    closeNewSessionModal();
+    openChatWindow(data.session_id, data.title || name || 'New Session', 'idle');
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Session';
+  }
 }

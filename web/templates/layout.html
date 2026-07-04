@@ -12,14 +12,14 @@
   <nav class="sidebar">
     <div class="sidebar-header">
       <span class="logo-icon">⬡</span>
-      <span class="logo-text">Hermes</span>
+      <span class="logo-text">Bot Factory</span>
       <span class="mode-badge">{{.Mode}}</span>
     </div>
-    <ul class="nav-list">
-      <li class="nav-item {{if eq .Active "chat"}}active{{end}}">
-        <a href="/chat" class="nav-link">
+    <ul class="nav-list" id="main-nav">
+      <li class="nav-item {{if eq .Active "status"}}active{{end}}">
+        <a href="/status" class="nav-link">
           <span class="nav-icon">◉</span>
-          <span>Chat</span>
+          <span>Bots</span>
         </a>
       </li>
       <li class="nav-item {{if eq .Active "skills"}}active{{end}}">
@@ -32,24 +32,6 @@
         <a href="/models" class="nav-link">
           <span class="nav-icon">◇</span>
           <span>Models</span>
-        </a>
-      </li>
-      <li class="nav-item {{if eq .Active "sessions"}}active{{end}}">
-        <a href="/sessions" class="nav-link">
-          <span class="nav-icon">◎</span>
-          <span>Sessions</span>
-        </a>
-      </li>
-      <li class="nav-item {{if eq .Active "status"}}active{{end}}">
-        <a href="/status" class="nav-link">
-          <span class="nav-icon">◉</span>
-          <span>Status</span>
-        </a>
-      </li>
-      <li class="nav-item {{if eq .Active "jobs"}}active{{end}}">
-        <a href="/jobs" class="nav-link">
-          <span class="nav-icon">◫</span>
-          <span>Jobs</span>
         </a>
       </li>
       <li class="nav-item {{if eq .Active "config"}}active{{end}}">
