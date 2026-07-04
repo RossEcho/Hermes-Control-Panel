@@ -1,0 +1,81 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} — Hermes Control Panel</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">Hermes</span>
+      <span class="mode-badge">{{.Mode}}</span>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item {{if eq .Active "chat"}}active{{end}}">
+        <a href="/chat" class="nav-link">
+          <span class="nav-icon">◉</span>
+          <span>Chat</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "skills"}}active{{end}}">
+        <a href="/skills" class="nav-link">
+          <span class="nav-icon">◈</span>
+          <span>Skills</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "models"}}active{{end}}">
+        <a href="/models" class="nav-link">
+          <span class="nav-icon">◇</span>
+          <span>Models</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "sessions"}}active{{end}}">
+        <a href="/sessions" class="nav-link">
+          <span class="nav-icon">◎</span>
+          <span>Sessions</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "status"}}active{{end}}">
+        <a href="/status" class="nav-link">
+          <span class="nav-icon">◉</span>
+          <span>Status</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "jobs"}}active{{end}}">
+        <a href="/jobs" class="nav-link">
+          <span class="nav-icon">◫</span>
+          <span>Jobs</span>
+        </a>
+      </li>
+      <li class="nav-item {{if eq .Active "config"}}active{{end}}">
+        <a href="/config" class="nav-link">
+          <span class="nav-icon">◧</span>
+          <span>Config</span>
+        </a>
+      </li>
+    </ul>
+    <div class="sidebar-usage" hx-get="/api/usage/fragment" hx-trigger="load, every 30s">
+      <div class="sidebar-usage-label">Usage</div>
+      <div class="usage-stats">
+        <div class="usage-row"><span class="usage-icon">↑</span><span class="usage-label">in</span><span class="usage-val">—</span></div>
+        <div class="usage-row"><span class="usage-icon">↓</span><span class="usage-label">out</span><span class="usage-val">—</span></div>
+        <div class="usage-row"><span class="usage-icon">◉</span><span class="usage-label">sessions</span><span class="usage-val">—</span></div>
+        <div class="usage-row"><span class="usage-icon">✉</span><span class="usage-label">today</span><span class="usage-val">—</span></div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <a href="/health" class="health-link" target="_blank">health</a>
+    </div>
+  </nav>
+  <main class="main-content">
+    {{block "content" .}}{{end}}
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
+{{end}}

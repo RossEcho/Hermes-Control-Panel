@@ -1,0 +1,83 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="page-header">
+  <h1 class="page-title">Models</h1>
+  <p class="page-subtitle">View and switch the active language model.</p>
+</div>
+
+<div class="models-layout">
+  <!-- Active model highlight -->
+  {{range $payload.Models}}
+  {{if .IsActive}}
+  <div class="active-model-card">
+    <div class="active-model-label">Active Model</div>
+    <div class="active-model-name">{{.Name}}</div>
+    <div class="active-model-meta">
+      <span class="provider-badge">{{.Provider}}</span>
+      {{if .IsDefault}}<span class="badge badge-default">default</span>{{end}}
+      {{if .IsLocal}}<span class="badge badge-local">local</span>{{end}}
+    </div>
+  </div>
+  {{end}}
+  {{end}}
+
+  <!-- Cloud models -->
+  <div class="models-section">
+    <h2 class="models-section-title">Cloud Models</h2>
+    <div class="models-grid">
+      {{range $payload.Models}}
+      {{if not .IsLocal}}
+      <div class="model-card {{if .IsActive}}model-card-active{{end}} {{if not .Available}}model-card-unavailable{{end}}">
+        <div class="model-card-header">
+          <div class="model-status-dot {{if .Available}}dot-green{{else}}dot-gray{{end}}"></div>
+          <div class="model-card-name">{{.Name}}</div>
+          <div class="model-card-provider">{{.Provider}}</div>
+        </div>
+        <div class="model-card-badges">
+          {{if .IsDefault}}<span class="badge badge-default">default</span>{{end}}
+          {{if .IsActive}}<span class="badge badge-active">active</span>{{end}}
+        </div>
+        {{if not .IsActive}}
+        <form action="/api/models/select" method="post" class="model-switch-form">
+          <input type="hidden" name="model_id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm {{if not .Available}}btn-disabled{{end}}" {{if not .Available}}disabled{{end}}>Switch</button>
+        </form>
+        {{end}}
+      </div>
+      {{end}}
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Local models -->
+  <div class="models-section">
+    <h2 class="models-section-title">Local Models <span class="section-hint">(via Ollama)</span></h2>
+    <div class="models-grid">
+      {{range $payload.Models}}
+      {{if .IsLocal}}
+      <div class="model-card {{if .IsActive}}model-card-active{{end}} {{if not .Available}}model-card-unavailable{{end}}">
+        <div class="model-card-header">
+          <div class="model-status-dot {{if .Available}}dot-green{{else}}dot-gray{{end}}"></div>
+          <div class="model-card-name">{{.Name}}</div>
+          <div class="model-card-provider">{{.Provider}}</div>
+        </div>
+        <div class="model-card-badges">
+          <span class="badge badge-local">local</span>
+          {{if .IsActive}}<span class="badge badge-active">active</span>{{end}}
+          {{if not .Available}}<span class="badge badge-unavailable">unavailable</span>{{end}}
+        </div>
+        {{if and (not .IsActive) .Available}}
+        <form action="/api/models/select" method="post" class="model-switch-form">
+          <input type="hidden" name="model_id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm">Switch</button>
+        </form>
+        {{end}}
+      </div>
+      {{end}}
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

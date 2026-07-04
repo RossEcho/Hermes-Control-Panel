@@ -1,0 +1,76 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="page-header">
+  <h1 class="page-title">Jobs &amp; Processes</h1>
+  <p class="page-subtitle">Background jobs, running processes, and log tail.</p>
+</div>
+
+<!-- Jobs table -->
+<h2 class="section-title">Jobs</h2>
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Output</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $payload.Jobs}}
+      <tr>
+        <td><code class="id-code">{{.ID}}</code></td>
+        <td>{{.Name}}</td>
+        <td><span class="badge job-status-{{.Status}}">{{.Status}}</span></td>
+        <td class="td-time">{{.StartTime}}</td>
+        <td class="td-time">{{if .EndTime}}{{.EndTime}}{{else}}—{{end}}</td>
+        <td class="td-output">{{.Output}}</td>
+      </tr>
+      {{else}}
+      <tr><td colspan="6" class="td-empty">No jobs.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+
+<!-- Processes table -->
+<h2 class="section-title" style="margin-top:2rem">Processes</h2>
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>PID</th>
+        <th>Name</th>
+        <th>Status</th>
+        <th>CPU</th>
+        <th>Memory</th>
+        <th>Uptime</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $payload.Processes}}
+      <tr>
+        <td><code class="id-code">{{.PID}}</code></td>
+        <td>{{.Name}}</td>
+        <td><span class="badge job-status-{{.Status}}">{{.Status}}</span></td>
+        <td class="td-center">{{.CPU}}</td>
+        <td class="td-center">{{.Memory}}</td>
+        <td class="td-center">{{.Uptime}}</td>
+      </tr>
+      {{else}}
+      <tr><td colspan="6" class="td-empty">No processes.</td></tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+
+<!-- Log tail -->
+<h2 class="section-title" style="margin-top:2rem">Log Tail</h2>
+<pre class="log-block">{{range $payload.Logs}}{{.}}
+{{end}}</pre>
+{{end}}

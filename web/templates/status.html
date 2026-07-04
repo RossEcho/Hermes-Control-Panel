@@ -1,0 +1,71 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+{{$status := $payload.Status}}
+<div class="page-header">
+  <h1 class="page-title">System Status</h1>
+  <p class="page-subtitle">Live overview of Hermes system health.</p>
+</div>
+
+<div class="status-grid">
+  <div class="status-card">
+    <div class="status-card-label">Hermes Process</div>
+    <div class="status-card-value status-{{$status.HermesProcess}}">{{$status.HermesProcess}}</div>
+    <div class="status-dot-row">
+      <span class="status-dot {{if eq $status.HermesProcess "running"}}dot-green{{else}}dot-red{{end}}"></span>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-card-label">API Connection</div>
+    <div class="status-card-value status-{{$status.APIStatus}}">{{$status.APIStatus}}</div>
+    <div class="status-dot-row">
+      <span class="status-dot {{if eq $status.APIStatus "connected"}}dot-green{{else}}dot-red{{end}}"></span>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-card-label">Gateway</div>
+    <div class="status-card-value status-{{$status.GatewayStatus}}">{{$status.GatewayStatus}}</div>
+    <div class="status-dot-row">
+      <span class="status-dot {{if eq $status.GatewayStatus "ok"}}dot-green{{else}}dot-red{{end}}"></span>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-card-label">Active Profile</div>
+    <div class="status-card-value">{{$status.ActiveProfile}}</div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-card-label">Sessions</div>
+    <div class="status-card-value status-number">{{$status.SessionCount}}</div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-card-label">Jobs</div>
+    <div class="status-card-value status-number">{{$status.JobCount}}</div>
+  </div>
+</div>
+
+<div class="status-section">
+  <h2 class="section-title">Active Sessions</h2>
+  <div class="session-blobs">
+    {{range $payload.Sessions}}
+    <div class="session-blob session-blob-{{if eq .Status "running"}}running{{else}}idle{{end}}"
+         onclick="openChatWindow('{{.ID}}', '{{.Title}}', '{{.Status}}')"
+         title="Open chat: {{.Title}}">
+      <span class="session-blob-dot"></span>
+      <span class="session-blob-title">{{.Title}}</span>
+      <span class="session-blob-meta">
+        <span class="session-blob-status">{{if .Status}}{{.Status}}{{else}}idle{{end}}</span>
+        <span class="session-blob-count">{{.MessageCount}} msgs</span>
+      </span>
+    </div>
+    {{else}}
+    <span class="text-dim">No active sessions.</span>
+    {{end}}
+  </div>
+</div>
+{{end}}

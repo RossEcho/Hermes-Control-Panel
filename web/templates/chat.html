@@ -1,0 +1,129 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="chat-layout">
+  <!-- Session sidebar -->
+  <aside class="session-sidebar">
+
+    <!-- Running Agents -->
+    <div class="agents-section">
+      <div class="agents-header">
+        <span class="section-label">Running Agents</span>
+        <span class="agents-count">{{len $payload.Sessions}}</span>
+      </div>
+      <ul class="agents-list" id="agents-list">
+        {{range $payload.Sessions}}
+        <li class="agent-item" id="agent-{{.ID}}">
+          <span class="agent-status-dot {{if eq .Status "running"}}agent-running{{else}}agent-idle{{end}}"></span>
+          <a href="/chat/{{.ID}}" class="agent-title" title="{{.Title}}">{{.Title}}</a>
+          <span class="agent-status-label">{{if .Status}}{{.Status}}{{else}}idle{{end}}</span>
+          <button class="agent-remove"
+                  hx-delete="/api/sessions/{{.ID}}"
+                  hx-target="#agent-{{.ID}}"
+                  hx-swap="outerHTML"
+                  title="Remove session">×</button>
+        </li>
+        {{else}}
+        <li class="agent-empty">No sessions.</li>
+        {{end}}
+      </ul>
+    </div>
+
+    <!-- Session nav -->
+    <div class="session-sidebar-header">
+      <span class="section-label">Sessions</span>
+      <form action="/api/sessions/new" method="post">
+        <button type="submit" class="btn btn-sm btn-primary">+ New</button>
+      </form>
+    </div>
+    <ul class="session-list">
+      {{range $payload.Sessions}}
+      <li class="session-item {{if eq .ID $payload.SessionID}}active{{end}}">
+        <a href="/chat/{{.ID}}" class="session-link">
+          <div class="session-title">{{.Title}}</div>
+          <div class="session-meta">
+            <span class="session-count">{{.MessageCount}} msgs</span>
+            <span class="session-time">{{.LastUpdated}}</span>
+          </div>
+          <div class="session-preview">{{.Preview}}</div>
+        </a>
+      </li>
+      {{else}}
+      <li class="session-empty">No sessions yet.</li>
+      {{end}}
+    </ul>
+  </aside>
+
+  <!-- Message pane -->
+  <section class="message-pane">
+    <div class="message-pane-header">
+      <span class="session-id-badge">{{if $payload.SessionID}}{{$payload.SessionID}}{{else}}no session{{end}}</span>
+    </div>
+    <div class="message-list" id="message-list">
+      {{if $payload.Messages}}
+        {{range $payload.Messages}}
+        <div class="message message-{{.Role}}">
+          <div class="message-header">
+            <span class="message-role">{{.Role}}</span>
+            <span class="message-ts">{{.Timestamp}}</span>
+          </div>
+          {{range .ToolCalls}}
+          <details class="tool-call-block">
+            <summary class="tool-call-summary">
+              <span class="tool-icon">⚙</span>
+              <span class="tool-name">{{.Name}}</span>
+              <span class="tool-status tool-status-{{.Status}}">{{.Status}}</span>
+            </summary>
+            <div class="tool-call-body">
+              <div class="tool-section-label">Input</div>
+              <pre class="tool-pre">{{.Input}}</pre>
+              {{if .Output}}
+              <div class="tool-section-label">Output</div>
+              <pre class="tool-pre">{{.Output}}</pre>
+              {{end}}
+            </div>
+          </details>
+          {{end}}
+          <div class="message-content">{{.Content}}</div>
+        </div>
+        {{end}}
+      {{else}}
+        <div class="message-empty">
+          <p>Send a message to start the conversation.</p>
+        </div>
+      {{end}}
+      <!-- Streaming assistant message appended here by JS -->
+      <div id="streaming-message" class="message message-assistant hidden">
+        <div class="message-header">
+          <span class="message-role">assistant</span>
+          <span class="message-ts" id="streaming-ts"></span>
+        </div>
+        <div id="streaming-tool-calls"></div>
+        <div class="message-content" id="streaming-content"></div>
+        <div class="streaming-indicator" id="streaming-indicator">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Composer -->
+    <div class="composer">
+      <div class="composer-inner">
+        <textarea
+          id="chat-input"
+          class="composer-input"
+          placeholder="Message Hermes… (Shift+Enter for new line)"
+          rows="3"
+        ></textarea>
+        <div class="composer-actions">
+          <span class="model-badge">{{$payload.ActiveModel}}</span>
+          <button id="stop-btn" class="btn btn-sm btn-danger hidden" onclick="stopStream()">■ Stop</button>
+          <button id="send-btn" class="btn btn-primary" onclick="sendMessage()">Send ▶</button>
+        </div>
+      </div>
+      <input type="hidden" id="session-id" value="{{$payload.SessionID}}">
+    </div>
+  </section>
+</div>
+{{end}}

@@ -1,0 +1,43 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="page-header">
+  <h1 class="page-title">Sessions</h1>
+  <p class="page-subtitle">All chat sessions with Hermes.</p>
+  <form action="/api/sessions/new" method="post" style="display:inline">
+    <button type="submit" class="btn btn-primary">+ New Session</button>
+  </form>
+</div>
+
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Session ID</th>
+        <th>Messages</th>
+        <th>Last Updated</th>
+        <th>Preview</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $payload.Sessions}}
+      <tr>
+        <td class="td-title">{{.Title}}</td>
+        <td><code class="id-code">{{.ID}}</code></td>
+        <td class="td-center">{{.MessageCount}}</td>
+        <td class="td-time">{{.LastUpdated}}</td>
+        <td class="td-preview">{{.Preview}}</td>
+        <td><a href="/chat/{{.ID}}" class="btn btn-sm">Open ▶</a></td>
+      </tr>
+      {{else}}
+      <tr>
+        <td colspan="6" class="td-empty">No sessions yet. Start a new one above.</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

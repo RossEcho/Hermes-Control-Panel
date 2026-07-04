@@ -1,0 +1,108 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="page-header">
+  <h1 class="page-title">Configuration</h1>
+  <p class="page-subtitle">Read-only view of loaded configuration values. Edit <code>.env</code> to change settings.</p>
+</div>
+
+<div class="config-layout">
+  <!-- Hermes Integration -->
+  <div class="config-section">
+    <h2 class="config-section-title">Hermes Integration</h2>
+    <table class="config-table">
+      <tbody>
+        <tr>
+          <td class="config-key">HERMES_EXECUTABLE_PATH</td>
+          <td class="config-val">{{if $payload.HermesExecutablePath}}{{$payload.HermesExecutablePath}}{{else}}<span class="text-dim">(not set)</span>{{end}}</td>
+        </tr>
+        <tr>
+          <td class="config-key">HERMES_HOME</td>
+          <td class="config-val">{{if $payload.HermesHome}}{{$payload.HermesHome}}{{else}}<span class="text-dim">(not set)</span>{{end}}</td>
+        </tr>
+        <tr>
+          <td class="config-key">HERMES_CONFIG_PATH</td>
+          <td class="config-val">{{if $payload.HermesConfigPath}}{{$payload.HermesConfigPath}}{{else}}<span class="text-dim">(not set)</span>{{end}}</td>
+        </tr>
+        <tr>
+          <td class="config-key">HERMES_ENV_PATH</td>
+          <td class="config-val">{{if $payload.HermesEnvPath}}{{$payload.HermesEnvPath}}{{else}}<span class="text-dim">(not set)</span>{{end}}</td>
+        </tr>
+        <tr>
+          <td class="config-key">HERMES_API_BASE_URL</td>
+          <td class="config-val">{{if $payload.HermesAPIBaseURL}}{{$payload.HermesAPIBaseURL}}{{else}}<span class="text-dim">(not set)</span>{{end}}</td>
+        </tr>
+        <tr>
+          <td class="config-key">HERMES_API_TOKEN</td>
+          <td class="config-val config-secret">{{$payload.HermesAPIToken}}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="config-hint">
+      <strong>Wiring points:</strong> Fill in <code>HERMES_EXECUTABLE_PATH</code> and set <code>ENABLE_DIRECT_CLI_MODE=true</code>
+      to use the real Hermes CLI, or fill in <code>HERMES_API_BASE_URL</code> and set <code>ENABLE_API_MODE=true</code>
+      to use the Hermes REST API. See <code>internal/hermes/cli_adapter.go</code> and
+      <code>internal/hermes/api_adapter.go</code> for the full wiring guide.
+    </div>
+  </div>
+
+  <!-- Server -->
+  <div class="config-section">
+    <h2 class="config-section-title">Server</h2>
+    <table class="config-table">
+      <tbody>
+        <tr><td class="config-key">APP_HOST</td><td class="config-val">{{$payload.AppHost}}</td></tr>
+        <tr><td class="config-key">APP_PORT</td><td class="config-val">{{$payload.AppPort}}</td></tr>
+        <tr><td class="config-key">APP_SESSION_SECRET</td><td class="config-val config-secret">{{$payload.AppSessionSecret}}</td></tr>
+        <tr><td class="config-key">APP_DEBUG</td><td class="config-val">{{$payload.AppDebug}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Defaults -->
+  <div class="config-section">
+    <h2 class="config-section-title">Defaults</h2>
+    <table class="config-table">
+      <tbody>
+        <tr><td class="config-key">DEFAULT_PROFILE</td><td class="config-val">{{$payload.DefaultProfile}}</td></tr>
+        <tr><td class="config-key">DEFAULT_CHAT_MODEL</td><td class="config-val">{{$payload.DefaultChatModel}}</td></tr>
+        <tr><td class="config-key">LOG_LEVEL</td><td class="config-val">{{$payload.LogLevel}}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mode flags -->
+  <div class="config-section">
+    <h2 class="config-section-title">Mode Flags</h2>
+    <table class="config-table">
+      <tbody>
+        <tr>
+          <td class="config-key">ENABLE_MOCK_MODE</td>
+          <td class="config-val">
+            <span class="badge {{if $payload.EnableMockMode}}badge-active{{else}}badge-inactive{{end}}">
+              {{$payload.EnableMockMode}}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="config-key">ENABLE_DIRECT_CLI_MODE</td>
+          <td class="config-val">
+            <span class="badge {{if $payload.EnableDirectCLIMode}}badge-active{{else}}badge-inactive{{end}}">
+              {{$payload.EnableDirectCLIMode}}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td class="config-key">ENABLE_API_MODE</td>
+          <td class="config-val">
+            <span class="badge {{if $payload.EnableAPIMode}}badge-active{{else}}badge-inactive{{end}}">
+              {{$payload.EnableAPIMode}}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}

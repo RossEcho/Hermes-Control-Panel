@@ -1,0 +1,69 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{$payload := .Payload}}
+<div class="page-header">
+  <h1 class="page-title">Skills</h1>
+  <p class="page-subtitle">Browse and inspect available Hermes skills.</p>
+</div>
+
+<div class="skills-layout">
+  <!-- Skill list -->
+  <aside class="skills-sidebar">
+    <input
+      type="text"
+      id="skill-search"
+      class="search-input"
+      placeholder="Filter skills…"
+      oninput="filterSkills(this.value)"
+    >
+    <ul class="skill-list" id="skill-list">
+      {{range $payload.Skills}}
+      <li class="skill-item" data-id="{{.ID}}" data-name="{{.Name}}" data-category="{{.Category}}" onclick="selectSkill('{{.ID}}')">
+        <div class="skill-item-name">{{.Name}}</div>
+        <span class="badge badge-category">{{.Category}}</span>
+      </li>
+      {{else}}
+      <li class="skill-empty">No skills available.</li>
+      {{end}}
+    </ul>
+  </aside>
+
+  <!-- Skill detail panel -->
+  <section class="skill-detail" id="skill-detail">
+    <div class="skill-placeholder">
+      <p>Select a skill from the list to view details.</p>
+    </div>
+
+    {{range $payload.Skills}}
+    <div class="skill-detail-panel hidden" id="skill-panel-{{.ID}}">
+      <div class="skill-detail-header">
+        <h2 class="skill-detail-name">{{.Name}}</h2>
+        <span class="badge badge-source">{{.Source}}</span>
+      </div>
+      <p class="skill-detail-description">{{.Description}}</p>
+      <div class="skill-meta-row">
+        <div class="skill-meta-item">
+          <span class="meta-label">Category</span>
+          <span class="badge badge-category">{{.Category}}</span>
+        </div>
+        <div class="skill-meta-item">
+          <span class="meta-label">Tags</span>
+          <div class="tag-list">
+            {{range .Tags}}<span class="badge badge-tag">{{.}}</span>{{end}}
+          </div>
+        </div>
+        <div class="skill-meta-item">
+          <span class="meta-label">ID</span>
+          <code class="skill-id">{{.ID}}</code>
+        </div>
+      </div>
+      <div class="skill-content-section">
+        <div class="section-label">Content</div>
+        <pre class="code-block">{{.Content}}</pre>
+      </div>
+    </div>
+    {{end}}
+  </section>
+</div>
+{{end}}
